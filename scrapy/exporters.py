@@ -11,6 +11,7 @@ from six.moves import cPickle as pickle
 from xml.sax.saxutils import XMLGenerator
 
 from scrapy.utils.serialize import ScrapyJSONEncoder
+from scrapy.utils.python import to_bytes
 from scrapy.item import BaseItem
 
 __all__ = ['BaseItemExporter', 'PprintItemExporter', 'PickleItemExporter',
@@ -48,7 +49,9 @@ class BaseItemExporter(object):
         pass
 
     def _to_str_if_unicode(self, value):
-        return value.encode(self.encoding) if isinstance(value, unicode) else value
+        if isinstance(value, six.text_type):
+            return to_bytes(value, self.encoding)
+        return value
 
     def _get_serialized_fields(self, item, default_value=None, include_empty=None):
         """Return the fields to export as an iterable of tuples
@@ -249,7 +252,7 @@ class PythonItemExporter(BaseItemExporter):
             return self.export_item(value)
         if isinstance(value, dict):
             return dict(self._serialize_dict(value))
-        if hasattr(value, '__iter__'):
+        if hasattr(value, '__iter__') and not isinstance(value, six.string_types):
             return [self._serialize_value(v) for v in value]
         return self._to_str_if_unicode(value)
 

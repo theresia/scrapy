@@ -2,6 +2,7 @@ from __future__ import absolute_import
 import re
 import json
 import unittest
+import six
 from io import BytesIO
 from six.moves import cPickle as pickle
 
@@ -56,19 +57,19 @@ class BaseItemExporterTest(unittest.TestCase):
 
     def test_serialize_field(self):
         res = self.ie.serialize_field(self.i.fields['name'], 'name', self.i['name'])
-        self.assertEqual(res, 'John\xc2\xa3')
+        self.assertEqual(res, b'John\xc2\xa3')
 
         res = self.ie.serialize_field(self.i.fields['age'], 'age', self.i['age'])
-        self.assertEqual(res, '22')
+        self.assertEqual(res, b'22')
 
     def test_fields_to_export(self):
         ie = self._get_exporter(fields_to_export=['name'])
-        self.assertEqual(list(ie._get_serialized_fields(self.i)), [('name', 'John\xc2\xa3')])
+        self.assertEqual(list(ie._get_serialized_fields(self.i)), [('name', b'John\xc2\xa3')])
 
         ie = self._get_exporter(fields_to_export=['name'], encoding='latin-1')
         name = list(ie._get_serialized_fields(self.i))[0][1]
-        assert isinstance(name, str)
-        self.assertEqual(name, 'John\xa3')
+        self.assertIsInstance(name, six.binary_type)
+        self.assertEqual(name, b'John\xa3')
 
     def test_field_custom_serializer(self):
         def custom_serializer(value):
@@ -81,7 +82,7 @@ class BaseItemExporterTest(unittest.TestCase):
         i = CustomFieldItem(name=u'John\xa3', age='22')
 
         ie = self._get_exporter()
-        self.assertEqual(ie.serialize_field(i.fields['name'], 'name', i['name']), 'John\xc2\xa3')
+        self.assertEqual(ie.serialize_field(i.fields['name'], 'name', i['name']), b'John\xc2\xa3')
         self.assertEqual(ie.serialize_field(i.fields['age'], 'age', i['age']), '24')
 
 
@@ -96,7 +97,9 @@ class PythonItemExporterTest(BaseItemExporterTest):
         ie = self._get_exporter()
         exported = ie.export_item(i3)
         self.assertEqual(type(exported), dict)
-        self.assertEqual(exported, {'age': {'age': {'age': '22', 'name': u'Joseph'}, 'name': u'Maria'}, 'name': 'Jesus'})
+        self.assertEqual(exported, {'age':
+                                    {'age': {'age': b'22', 'name': b'Joseph'},
+                                     'name': b'Maria'}, 'name': b'Jesus'})
         self.assertEqual(type(exported['age']), dict)
         self.assertEqual(type(exported['age']['age']), dict)
 
@@ -106,7 +109,9 @@ class PythonItemExporterTest(BaseItemExporterTest):
         i3 = TestItem(name=u'Jesus', age=[i2])
         ie = self._get_exporter()
         exported = ie.export_item(i3)
-        self.assertEqual(exported, {'age': [{'age': [{'age': '22', 'name': u'Joseph'}], 'name': u'Maria'}], 'name': 'Jesus'})
+        self.assertEqual(exported, {
+            'age': [{'age': [{'age': b'22', 'name': b'Joseph'}], 'name': b'Maria'}],
+            'name': b'Jesus'})
         self.assertEqual(type(exported['age'][0]), dict)
         self.assertEqual(type(exported['age'][0]['age'][0]), dict)
 
@@ -116,7 +121,9 @@ class PythonItemExporterTest(BaseItemExporterTest):
         i3 = TestItem(name=u'Jesus', age=[i2])
         ie = self._get_exporter()
         exported = ie.export_item(i3)
-        self.assertEqual(exported, {'age': [{'age': [{'age': '22', 'name': u'Joseph'}], 'name': u'Maria'}], 'name': 'Jesus'})
+        self.assertEqual(exported, {
+            'age': [{'age': [{'age': b'22', 'name': b'Joseph'}], 'name': b'Maria'}],
+            'name': b'Jesus'})
         self.assertEqual(type(exported['age'][0]), dict)
         self.assertEqual(type(exported['age'][0]['age'][0]), dict)
 
@@ -148,8 +155,8 @@ class PickleItemExporterTest(BaseItemExporterTest):
         ie.export_item(i2)
         ie.finish_exporting()
         f.seek(0)
-        self.assertEqual(pickle.load(f), i1)
-        self.assertEqual(pickle.load(f), i2)
+        self.assertEqual(pickle.load(f), {'name': b'hello', 'age': b'world'})
+        self.assertEqual(pickle.load(f), {'name': b'bye', 'age': b'world'})
 
 
 class CsvItemExporterTest(BaseItemExporterTest):
