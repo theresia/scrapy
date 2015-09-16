@@ -39,7 +39,7 @@ class BaseItemExporter(object):
         raise NotImplementedError
 
     def serialize_field(self, field, name, value):
-        serializer = field.get('serializer', self._to_str_if_unicode)
+        serializer = field.get('serializer', self._to_bytes_if_text)
         return serializer(value)
 
     def start_exporting(self):
@@ -48,7 +48,7 @@ class BaseItemExporter(object):
     def finish_exporting(self):
         pass
 
-    def _to_str_if_unicode(self, value):
+    def _to_bytes_if_text(self, value):
         if isinstance(value, six.text_type):
             return to_bytes(value, self.encoding)
         return value
@@ -173,13 +173,13 @@ class CsvItemExporter(BaseItemExporter):
         self._headers_not_written = True
         self._join_multivalued = join_multivalued
 
-    def _to_str_if_unicode(self, value):
+    def _to_bytes_if_text(self, value):
         if isinstance(value, (list, tuple)):
             try:
                 value = self._join_multivalued.join(value)
             except TypeError:  # list in value may not contain strings
                 pass
-        return super(CsvItemExporter, self)._to_str_if_unicode(value)
+        return super(CsvItemExporter, self)._to_bytes_if_text(value)
 
     def export_item(self, item):
         if self._headers_not_written:
@@ -254,7 +254,7 @@ class PythonItemExporter(BaseItemExporter):
             return dict(self._serialize_dict(value))
         if hasattr(value, '__iter__') and not isinstance(value, six.string_types):
             return [self._serialize_value(v) for v in value]
-        return self._to_str_if_unicode(value)
+        return self._to_bytes_if_text(value)
 
     def _serialize_dict(self, value):
         for key, val in six.iteritems(value):

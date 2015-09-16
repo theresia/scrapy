@@ -397,11 +397,11 @@ class CustomItemExporterTest(unittest.TestCase):
         i = TestItem(name=u'John', age='22')
         ie = CustomItemExporter()
 
-        self.assertEqual(ie.serialize_field(i.fields['name'], 'name', i['name']), 'John')
+        self.assertEqual(ie.serialize_field(i.fields['name'], 'name', i['name']), b'John')
         self.assertEqual(ie.serialize_field(i.fields['age'], 'age', i['age']), '23')
 
         i2 = {'name': u'John', 'age': '22'}
-        self.assertEqual(ie.serialize_field({}, 'name', i2['name']), 'John')
+        self.assertEqual(ie.serialize_field({}, 'name', i2['name']), b'John')
         self.assertEqual(ie.serialize_field({}, 'age', i2['age']), '23')
 
 
